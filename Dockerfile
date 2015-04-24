@@ -15,7 +15,7 @@ RUN set -ex; \
     ; \
     rm -rf /var/lib/apt/lists/*
 
-ENV ALL_DOCKER_VERSIONS 1.3.3 1.4.1 1.5.0
+ENV ALL_DOCKER_VERSIONS 1.5.0 1.6.0
 
 RUN set -ex; \
     for v in ${ALL_DOCKER_VERSIONS}; do \
@@ -24,7 +24,7 @@ RUN set -ex; \
     done
 
 # Set the default Docker to be run
-RUN ln -s /usr/local/bin/docker-1.3.3 /usr/local/bin/docker
+RUN ln -s /usr/local/bin/docker-1.5.0 /usr/local/bin/docker
 
 RUN useradd -d /home/user -m -s /bin/bash user
 WORKDIR /code/

@@ -284,39 +284,20 @@ class Project(object):
 
         # trigger recreate/start_or_create
         for service in affected_services:
-            running_containers += self.recreate_or_start_or_create_containers(
-                service,
-                insecure_registry=insecure_registry,
-                detach=detach,
-                do_build=do_build)
+            if recreate:
+                create_func = service.recreate_containers
+            else:
+                create_func = service.start_or_create_containers
+
+            running_containers += create_func(
+                    insecure_registry=insecure_registry,
+                    detach=detach,
+                    do_build=do_build)
 
         return running_containers
 
-    def recreate_or_start_or_create_containers(self,
-            service,
-            recreate=True,
-            insecure_registry=False,
-            detach=False,
-            do_build=True):
-        if recreate:
-            return [
-                container
-                for (_, container) in service.recreate_containers(
-                    insecure_registry=insecure_registry,
-                    detach=detach,
-                    do_build=do_build)
-            ]
-        else:
-            return [
-                container
-                for container in service.start_or_create_containers(
-                    insecure_registry=insecure_registry,
-                    detach=detach,
-                    do_build=do_build)
-            ]
-
     def pull(self, service_names=None, insecure_registry=False):
-        for service in self.get_services(service_names, include_deps=False):
+        for service in self.get_services(service_names):
             service.pull(insecure_registry=insecure_registry)
 
     def remove_stopped(self, service_names=None, **options):
