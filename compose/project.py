@@ -316,7 +316,7 @@ class Project(object):
             ]
 
     def pull(self, service_names=None, insecure_registry=False):
-        for service in self.get_services(service_names, include_deps=True):
+        for service in self.get_services(service_names, include_deps=False):
             service.pull(insecure_registry=insecure_registry)
 
     def remove_stopped(self, service_names=None, **options):
