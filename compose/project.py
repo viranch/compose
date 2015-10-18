@@ -86,6 +86,65 @@ class Project(object):
 
         raise NoSuchService(name)
 
+    def get_downstream_services(self, service_names=None):
+        """
+        Returns a list of this project's services that are downstream
+        dependency of the given service_names, or no services if service_names is None
+        or [].
+
+        The list does not includes the given services also, preserving the dependency
+        order of the resolved related services.
+        """
+        return self.get_related_services(service_names, downstream=True)
+
+    def get_upstream_services(self, service_names=None):
+        """
+        Returns a list of this project's services that are upstream
+        dependency of the given service_names, or no services if service_names is None
+        or [].
+
+        The list does not includes the given services also, preserving the dependency
+        order of the resolved related services.
+        """
+        return self.get_related_services(service_names, upstream=True)
+
+    def get_related_services(self, service_names=None, downstream=False, upstream=False):
+        if service_names is None or len(service_names) == 0:
+            return []
+        else:
+            services = self.get_services(service_names)
+            all_related_services = self.get_all_related_services(services, downstream=downstream, upstream=upstream)
+
+            # remove given services
+            related_services = [s for s in all_related_services if s not in services]
+
+            # we need to invert the services for correct dependency order in case of upstream services
+            if upstream:
+                related_services.reverse()
+
+            return related_services
+
+    def get_all_related_services(self, services=None, downstream=False, upstream=False):
+        """
+        Returns a list of this project's services that are downstream or
+        upstream dependency of the given services, or no services if services is None
+        or [].
+
+        The list includes the given services also, preserving the dependency order of
+        the resolved related services.
+        """
+        if services is None or len(services) == 0:
+            return []
+        else:
+            if downstream:
+                services = reduce(self._inject_downstream_deps, services, [])
+            if upstream:
+                services = reduce(self._inject_upstream_deps, services, [])
+
+            uniques = []
+            [uniques.append(s) for s in services if s not in uniques]
+            return uniques
+
     def get_services(self, service_names=None, include_deps=False):
         """
         Returns a list of this project's services filtered
@@ -200,21 +259,61 @@ class Project(object):
            detach=False,
            do_build=True):
         running_containers = []
-        for service in self.get_services(service_names, include_deps=start_deps):
-            if recreate:
-                for (_, container) in service.recreate_containers(
-                        insecure_registry=insecure_registry,
-                        detach=detach,
-                        do_build=do_build):
-                    running_containers.append(container)
-            else:
-                for container in service.start_or_create_containers(
-                        insecure_registry=insecure_registry,
-                        detach=detach,
-                        do_build=do_build):
-                    running_containers.append(container)
+        affected_services = []
+
+        services = self.get_services(service_names)
+        downstream_services = [] # our services depend on downstream services
+        upstream_services = []   # upstream services depend on our services
+
+        # we depend on downstream services
+        # they should not be touched if start_deps=False
+        if start_deps:
+            downstream_services = self.get_downstream_services(service_names)
+            # recreate/start all downstream services that are not running
+            affected_services += [service for service in downstream_services if len(service.containers())==0]
+
+        # recreate/start given services
+        affected_services += services
+
+        # upstream services depend on us
+        # they should not be touched if recreate=False
+        if recreate and start_deps:
+            upstream_services = self.get_upstream_services(service_names)
+            # recreate all upstream services that are running
+            affected_services += [service for service in upstream_services if len(service.containers())>0]
+
+        # trigger recreate/start_or_create
+        for service in affected_services:
+            running_containers += self.recreate_or_start_or_create_containers(
+                service,
+                insecure_registry=insecure_registry,
+                detach=detach,
+                do_build=do_build)
 
         return running_containers
+
+    def recreate_or_start_or_create_containers(self,
+            service,
+            recreate=True,
+            insecure_registry=False,
+            detach=False,
+            do_build=True):
+        if recreate:
+            return [
+                container
+                for (_, container) in service.recreate_containers(
+                    insecure_registry=insecure_registry,
+                    detach=detach,
+                    do_build=do_build)
+            ]
+        else:
+            return [
+                container
+                for container in service.start_or_create_containers(
+                    insecure_registry=insecure_registry,
+                    detach=detach,
+                    do_build=do_build)
+            ]
 
     def pull(self, service_names=None, insecure_registry=False):
         for service in self.get_services(service_names, include_deps=True):
@@ -246,6 +345,28 @@ class Project(object):
 
         dep_services.append(service)
         return acc + dep_services
+
+    def _inject_downstream_deps(self, acc, service):
+        downstream_service_names = service.get_downstream_names()
+        downstream_services = self._related_services(downstream_service_names, downstream=True)
+        downstream_services.append(service)
+        return acc + downstream_services
+
+    def _inject_upstream_deps(self, acc, service):
+        upstream_service_names = service.get_upstream_names(all_services=self.services)
+        upstream_services = self._related_services(upstream_service_names, upstream=True)
+        upstream_services.append(service)
+        return acc + upstream_services
+
+    def _related_services(self, related_names, downstream=False, upstream=False):
+        related_services = []
+        if len(related_names) > 0:
+            related_services = self.get_all_related_services(
+                services=self.get_services(service_names=list(set(related_names))),
+                downstream=downstream,
+                upstream=upstream
+            )
+        return related_services
 
 
 class NoSuchService(Exception):

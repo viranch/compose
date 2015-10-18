@@ -124,6 +124,66 @@ class ProjectTest(unittest.TestCase):
             [db, web, console]
         )
 
+    def test_get_downstream_services_with_include_links(self):
+        db = Service(
+            project='composetest',
+            name='db',
+        )
+        cache = Service(
+            project='composetest',
+            name='cache'
+        )
+        web = Service(
+            project='composetest',
+            name='web',
+            links=[(db, 'database'), (cache, 'cache')]
+        )
+        console = Service(
+            project='composetest',
+            name='console',
+            links=[(web, 'web'), (cache, 'cache')]
+        )
+        monitor = Service(
+            project='composetest',
+            name='monitor',
+            links=[(web, 'web'), (console, 'console')]
+        )
+        project = Project('test', [web, db, monitor, console, cache], None)
+        self.assertEqual(
+            project.get_downstream_services(service_names=['monitor']),
+            [db, cache, web, console]
+        )
+
+    def test_get_upstream_services_with_include_links(self):
+        db = Service(
+            project='composetest',
+            name='db',
+        )
+        cache = Service(
+            project='composetest',
+            name='cache'
+        )
+        web = Service(
+            project='composetest',
+            name='web',
+            links=[(db, 'database'), (cache, 'cache')]
+        )
+        console = Service(
+            project='composetest',
+            name='console',
+            links=[(web, 'web'), (cache, 'cache')]
+        )
+        monitor = Service(
+            project='composetest',
+            name='monitor',
+            links=[(web, 'web'), (console, 'console')]
+        )
+        project = Project('test', [web, db, console, cache, monitor], None)
+        self.assertEqual(
+            project.get_upstream_services(service_names=['cache']),
+            [web, console, monitor]
+        )
+
     def test_get_services_removes_duplicates_following_links(self):
         db = Service(
             project='composetest',

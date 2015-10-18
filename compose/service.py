@@ -291,6 +291,21 @@ class Service(object):
         else:
             return [self.start_container_if_stopped(c) for c in containers]
 
+    def get_downstream_names(self):
+        net_name = self.get_net_name()
+        return (self.get_linked_names() +
+                self.get_volumes_from_names() +
+                ([net_name] if net_name else []))
+
+    def get_upstream_names(self, all_services):
+        return [
+            service.name
+            for service in all_services
+            if self.name == service.get_net_name()
+                or self.name in service.get_linked_names()
+                or self.name in service.get_volumes_from_names()
+        ]
+
     def get_linked_names(self):
         return [s.name for (s, _) in self.links]
 
