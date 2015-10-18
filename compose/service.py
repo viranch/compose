@@ -504,10 +504,10 @@ class Service(object):
         return '%s_%s' % (self.project, self.name)
 
     def can_be_scaled(self):
-        for port in self.options.get('ports', []):
-            if ':' in str(port):
-                return False
-        return True
+        return all(
+            host_port is None or (isinstance(host_port, tuple) and host_port[1] is None)
+            for _, host_port in map(split_port, self.options.get('ports', []))
+        )
 
     def pull(self, insecure_registry=False):
         if 'image' in self.options:
@@ -603,7 +603,7 @@ def split_port(port):
     parts = str(port).split(':')
     if not 1 <= len(parts) <= 3:
         raise ConfigError('Invalid port "%s", should be '
-                          '[[remote_ip:]remote_port:]port[/protocol]' % port)
+                          '[[remote_ip:][remote_port]:]port[/protocol]' % port)
 
     if len(parts) == 1:
         internal_port, = parts

@@ -156,6 +156,40 @@ class ServiceTest(unittest.TestCase):
         self.assertEqual(port_bindings["1000"],[("127.0.0.1","1000")])
         self.assertEqual(port_bindings["2000"],[("127.0.0.1","2000")])
 
+    def test_can_be_scaled_with_no_ports(self):
+        service = Service(
+            'foo',
+            image='foo')
+        self.assertEqual(service.can_be_scaled(), True)
+
+    def test_can_be_scaled_with_container_port(self):
+        service = Service(
+            'foo',
+            image='foo',
+            ports=["2000"])
+        self.assertEqual(service.can_be_scaled(), True)
+
+    def test_can_be_scaled_with_host_port(self):
+        service = Service(
+            'foo',
+            image='foo',
+            ports=["1000:2000"])
+        self.assertEqual(service.can_be_scaled(), False)
+
+    def test_can_be_scaled_with_host_ip_no_port(self):
+        service = Service(
+            'foo',
+            image='foo',
+            ports=["127.0.0.1::2000"])
+        self.assertEqual(service.can_be_scaled(), True)
+
+    def test_can_be_scaled_with_host_ip_and_port(self):
+        service = Service(
+            'foo',
+            image='foo',
+            ports=["127.0.0.1:1000:2000"])
+        self.assertEqual(service.can_be_scaled(), False)
+
     def test_split_domainname_none(self):
         service = Service('foo', hostname='name', client=self.mock_client)
         self.mock_client.containers.return_value = []
