@@ -10,7 +10,7 @@ Compose with a `curl` command.
 
 ### Install Docker
 
-First, install Docker version 1.3 or greater:
+First, install Docker version 1.5 or greater:
 
 - [Instructions for Mac OS X](http://docs.docker.com/installation/mac/)
 - [Instructions for Ubuntu](http://docs.docker.com/installation/ubuntulinux/)
@@ -20,7 +20,7 @@ First, install Docker version 1.3 or greater:
 
 To install Compose, run the following commands:
 
-    curl -L https://github.com/docker/compose/releases/download/1.2.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+    curl -L https://github.com/viranch/compose/releases/download/1.2.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
 
 Optionally, you can also install [command completion](completion.md) for the

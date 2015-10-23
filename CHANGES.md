@@ -1,6 +1,19 @@
 Change log
 ==========
 
+1.2.1 (2015-10-19)
+------------------
+
+- Compose now supports scaling of services that have port bindings of the form `host_ip::container_port`, eg: `127.0.0.1::80`
+
+- `docker-compose up -d <service>` now correctly handles starting of stopped/missing downstream services & recreating running upstream services. Downstream & upstream services are those that are related by one or more of `links`, `volumes_from` & `net` directives.
+
+- Compose now supports `docker run --add-host` with the configuration key `extra_hosts` in `docker-compose.yml`. [Documentation here](https://github.com/viranch/compose/blob/1.2.1/docs/yml.md#extra_hosts).
+
+- `docker-compose pull <service>` no more pulls images for downstream services.
+
+- Compose now uses docker's rename containers API when recreating containers instead of creating intermediate containers.
+
 1.2.0 (2015-04-16)
 ------------------
 
